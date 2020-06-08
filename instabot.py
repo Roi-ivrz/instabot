@@ -4,9 +4,16 @@ from selenium.webdriver.common.action_chains import ActionChains
 from time import sleep
 import numpy as np
 import keys
+import random
 
 
 PATH = 'C:\Program Files (x86)\chromedriver.exe'
+
+def naturalSleep(value):
+        deviation = 0.6
+        upperBound,lowerBound = round(value + value*deviation), round(value - value*deviation)
+        newVal = random.randrange(lowerBound, upperBound)
+        sleep(newVal)
 
 class Instabot:
     def __init__(self, username, password):
@@ -43,6 +50,9 @@ class Instabot:
             sleep(0.5)
         return scrollBox
 
+    
+
+
     def get_follower_list(self):
         #click on instagram icon to return home
         self.driver.find_element_by_xpath('/html/body/div[1]/section/nav/div[2]/div/div/div[1]/a/div/div/img')\
@@ -50,7 +60,7 @@ class Instabot:
         #click open profile
         self.driver.find_element_by_xpath('/html/body/div[1]/section/main/section/div[3]/div[1]/div/div[2]/div[1]/a')\
             .click()
-        sleep(2)
+        sleep(4)
         #obtain follower count
         followerCount = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a').text.split(' ')[0]
         followerCount = ''.join(followerCount.split(','))
@@ -59,7 +69,7 @@ class Instabot:
         self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a')\
             .click()
         sleep(2)
-        #scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div[2]')
+        scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div[2]')
 
         #scrolling
         bot.scrolling_list(followerCount)
@@ -77,7 +87,7 @@ class Instabot:
         for item in followerList:
             if item.text != '':
                 followerNameList.append(item.text)
-                appendFile.write(item.text + ', ')
+                appendFile.write(item.text + ',')
         appendFile.close()
             
         print('follower list generated!')
@@ -93,7 +103,7 @@ class Instabot:
         #click open profile
         self.driver.find_element_by_xpath('/html/body/div[1]/section/main/section/div[3]/div[1]/div/div[2]/div[1]/a')\
             .click()
-        sleep(2)
+        sleep(4)
         #obtain follower count
         followingCount = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a').text.split(' ')[0]
         followingCount = ''.join(followingCount.split(','))
@@ -120,7 +130,7 @@ class Instabot:
         for item in followingList:
             if item.text != '':
                 followingNameList.append(item.text)
-                appendFile.write(item.text + ', ')
+                appendFile.write(item.text + ',')
         appendFile.close()
             
         print('following list generated!')
@@ -138,22 +148,30 @@ class Instabot:
         not_following_back = np.setdiff1d(followingNames, followerNames)
         appendFile = open('not_following_back.txt', 'w')
         for item in not_following_back:
-            appendFile.write(item + ', ')
+            appendFile.write(item + ',')
         appendFile.close()
-        print(not_following_back)
+        print('list of not following back users compiled:', len(not_following_back), 'total users')
 
     def unfollow_NFB(self, count):
         file = open("not_following_back.txt","r")
         not_following_back = file.read().split(',')
-        for i in range(count):
-            self.driver.find_element_by_xpath('/html/body/div[1]/section/nav/div[2]/div/div/div[2]/div')\
+        for item in range(count):
+            name = not_following_back[item]
+            self.driver.get('https://instagram.com/' + name)
+            naturalSleep(3)
+            self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
                 .click()
-            sleep(2)
-            self.driver.find_element_by_xpath('/html/body/div[1]/section/nav/div[2]/div/div/div[2]/div')\
-                .send_keys('bruh')
-            print(not_following_back[i])
-            sleep(40)
-            self.driver.find_elements_by_class_name('Ap253').click()
+            naturalSleep(3)
+            self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[3]/button[1]').click()
+            not_following_back.remove(name)
+            naturalSleep(5)
+        file.close()
+        appendFile = open("not_following_back.txt","w")
+        for item in not_following_back:
+            appendFile.write(item + ',')
+        appendFile.close()
+        print('successfully unfollowed', count, 'users')
+        
             
             
 
@@ -162,6 +180,6 @@ class Instabot:
 
 bot = Instabot(keys.username, keys.password)
 #bot.get_follower_list()
-bot.get_following_list()
+#bot.get_following_list()
 #bot.not_following_back_list()
-#bot.unfollow_NFB(2)
+bot.unfollow_NFB(5)
