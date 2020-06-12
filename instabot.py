@@ -3,9 +3,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from time import sleep
 import numpy as np
-import keys
 import random
-
+import keys
+import re
 
 PATH = 'C:\Program Files (x86)\chromedriver.exe'
 
@@ -27,12 +27,12 @@ class Instabot:
             .send_keys(password)
         self.driver.find_element_by_xpath('/html/body/div[1]/section/main/article/div[2]/div[1]/div/form/div[4]/button/div')\
             .click()
-        sleep(2.5)
+        sleep(3)
         #save login
         self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div/div/section/div/button').click()
         sleep(2.5)
         #notification
-        self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[3]/button[2]').click()
+        self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[2]').click()
         sleep(1)
         
 
@@ -49,6 +49,21 @@ class Instabot:
             print('current:', nameLinks, '/', maxNum, 'max')
             sleep(0.5)
         return scrollBox
+    
+    def liked_scrolling_list(self, maxNum):
+        actions = ActionChains(self.driver)
+        #scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div[2]')
+        nameLinks = 1
+        while int(nameLinks) < int(maxNum):
+            #scrollBox.click()
+            actions.send_keys(Keys.PAGE_DOWN).perform()
+            sleep(0.5)
+            users = self.driver.find_elements_by_tag_name('a')
+            nameLinks = [item.get_attribute('href') for item in users
+                        if '.com/' in item.get_attribute('href')]
+            actions.send_keys(Keys.PAGE_DOWN).perform()
+            print('current:', len(nameLinks), '/', maxNum, 'max')
+            sleep(0.5)
 
     
 
@@ -158,22 +173,93 @@ class Instabot:
         for item in range(count):
             name = not_following_back[item]
             self.driver.get('https://instagram.com/' + name)
-            naturalSleep(3)
-            self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
+            naturalSleep(10)
+            
+            try:
+                self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
                 .click()
-            naturalSleep(3)
-            self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[3]/button[1]').click()
-            not_following_back.remove(name)
-            naturalSleep(5)
+                naturalSleep(15)
+                self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[1]').click()
+                not_following_back.remove(name)
+                print('successfully unfollowed', name)
+            except Exception as e:
+                print('failed to unfollow user', name)
+                sleep(2)
+            naturalSleep(10)
         file.close()
         appendFile = open("not_following_back.txt","w")
         for item in not_following_back:
             appendFile.write(item + ',')
         appendFile.close()
         print('successfully unfollowed', count, 'users')
-        
-            
-            
+      
+    def follow(self):
+        target_found = False
+        while target_found == False:
+            self.driver.get('https://instagram.com')
+            sleep(3)
+            targets = self.driver.find_elements_by_class_name('ZIAjV')
+            userList = []
+            for item in targets[:(len(targets)-1)]:
+                if item.text not in userList:
+                    userList.append(item.text)
+            print(userList)
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            sleep(3)
+
+            for names in userList:
+                print('User:', names)
+                #self.driver.get('https://instagram.com/' + names)
+                self.driver.get('https://www.instagram.com/drone_service.cl/')
+                naturalSleep(10)
+                #follower count
+                follower = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a/span')\
+                    .text
+                follower = ''.join(re.split(',|\.', follower))
+                #following count
+                following = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a/span')\
+                    .text
+                following = ''.join(re.split(',|\.', following))
+                #in case value in thousands
+                if 'k' in follower:
+                    follower = follower.replace('k', '')
+                    follower = int(follower) *100
+                if 'k' in following:
+                    following = following.replace('k', '')
+                    following = int(following) *100
+                #follower to following ratio
+                ratio = abs(int(follower) - int(following)) / int(following)
+                print('Ratio:', ratio)
+                naturalSleep(10)
+
+                #randomly like their post and follower others that liked the post
+                if ratio <= 4 and int(follower) < 6000:
+                    posts = self.driver.find_elements_by_tag_name('a')
+                    hrefs = [item.get_attribute('href') for item in posts
+                                 if '.com/p/' in item.get_attribute('href')]
+                    self.driver.get(hrefs[random.randrange(0,8)])
+                    naturalSleep(6)
+                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')\
+                            .click()
+                    naturalSleep(10)
+                    
+                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[2]/div/div[2]/button')\
+                        .click()
+                    naturalSleep(12)
+                    
+                    bot.liked_scrolling_list(30)
+                    userToFollow = self.driver.find_elements_by_class_name('y3zKF')
+                    print(userToFollow)
+                    sleep(500)
+                    
+                    target_found = True
+
+
+
+
+
+            #self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                
 
 
 
@@ -182,4 +268,5 @@ bot = Instabot(keys.username, keys.password)
 #bot.get_follower_list()
 #bot.get_following_list()
 #bot.not_following_back_list()
-bot.unfollow_NFB(5)
+#bot.unfollow_NFB(30)
+bot.follow()
