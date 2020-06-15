@@ -89,7 +89,14 @@ class Instabot:
             sleep(0.6)
             iterations += 1
 
-    
+    def unique_post(self):
+        btn = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')
+        aria_label = btn.find_element_by_css_selector('svg').get_attribute("aria-label")
+        sleep(2)
+        if aria_label == 'Like':
+            return True
+        else:
+            return False
 
 
     def get_follower_list(self):
@@ -289,7 +296,10 @@ class Instabot:
         count = 0
         i = 0
         while count < (amount - 14):
+            print('---------------switching to next hashtag: #' + hashtag_list[i] + '---------------')
+            naturalSleep(15)
             self.driver.get('https://www.instagram.com/explore/tags/' + hashtag_list[i])
+            i += 1
             sleep(3)
             element = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/article/h2')
             self.driver.execute_script("arguments[0].scrollIntoView();", element)
@@ -305,32 +315,35 @@ class Instabot:
             for item in target_posts:
                 self.driver.get(item)
                 naturalSleep(25)
-                self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')\
-                    .click()
-                count += 1
-                oneAction()
-                naturalSleep(10)
 
-                if random.randint(0,12) < 3:
-                    file = open("comments.txt","r")
-                    comments = file.read().split(',')
-                    self.driver.find_element_by_class_name('Ypffh').click()
-                    sleep(1)
-                    self.driver.find_element_by_class_name('Ypffh').send_keys(comments[random.randrange(0,len(comments))])
-                    sleep(1)
-                    self.driver.find_element_by_class_name('Ypffh').send_keys(Keys.ENTER)
+                if bot.unique_post() == True:
+                    #liking post
+                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')\
+                        .click()
+                    count += 1
                     oneAction()
-                    file.close()
-                    naturalSleep(15)
+                    naturalSleep(10)
 
-                print('count: ' + str(count))
-            i += 1
-            print('switching to next hashtag: #' + hashtag_list[i])
+                    #commenting post
+                    if random.randint(0,12) < 4:
+                        file = open("comments.txt","r")
+                        comments = file.read().split(',')
+                        self.driver.find_element_by_class_name('Ypffh').click()
+                        sleep(1)
+                        self.driver.find_element_by_class_name('Ypffh').send_keys(comments[random.randrange(0,len(comments))])
+                        sleep(1)
+                        self.driver.find_element_by_class_name('Ypffh').send_keys(Keys.ENTER)
+                        oneAction()
+                        file.close()
+                        naturalSleep(15)
+                    print('count: ' + str(count))
+                else:
+                    print('post already interacted')
 
+            
 
-
-
-
+    
+ 
             #self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 
 
@@ -338,13 +351,12 @@ class Instabot:
 
 
 bot = Instabot(keys.username, keys.password)
-#bot.get_follower_list()
-#bot.get_following_list()
-#bot.not_following_back_list()
-#bot.unfollow_NFB(30)
-#bot.follow()
-bot.hashtag_like_and_comment(100)
-
+# bot.get_follower_list()
+# bot.get_following_list()
+# bot.not_following_back_list()
+# bot.unfollow_NFB(50)
+# bot.follow()
+bot.hashtag_like_and_comment(1000)
 
 import actions_per_day
 print('total actions today: '+ str(actions_per_day.actions))
