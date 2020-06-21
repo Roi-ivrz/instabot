@@ -3,9 +3,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from time import sleep
 import numpy as np
-import random, re, datetime
+import random, re, datetime, importlib
 # local files
-import keys
+import keys, actions_per_day
 
 PATH = 'C:\Program Files (x86)\chromedriver.exe'
 
@@ -16,7 +16,7 @@ def naturalSleep(value):
     sleep(newVal)
 
 def oneAction():
-    import actions_per_day
+    importlib.reload(actions_per_day)
     now = datetime.datetime.now()
     today = now.strftime('%m.%d')
 
@@ -56,9 +56,9 @@ class Instabot:
         sleep(1)
         
 
-    def scrolling_list(self, maxNum):
+    def scrolling_list(self, maxNum, scrollbox_location):
         actions = ActionChains(self.driver)
-        scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div[2]')
+        scrollBox = self.driver.find_element_by_xpath(scrollbox_location)
         nameLinks = 1
         while int(nameLinks) < int(maxNum):
             scrollBox.click()
@@ -118,7 +118,7 @@ class Instabot:
         scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div[2]')
 
         #scrolling
-        bot.scrolling_list(followerCount)
+        bot.scrolling_list(followerCount, '/html/body/div[4]/div/div[2]')
 
         #clear previous data on the following text file
         file = open("follower_list.txt","r+")
@@ -161,7 +161,7 @@ class Instabot:
         scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div[2]')
 
         #scrolling
-        bot.scrolling_list(followingCount)
+        bot.scrolling_list(followingCount, '/html/body/div[4]/div/div[2]')
 
         #clear previous data on the following text file
         file = open("following_list.txt","r+")
@@ -201,22 +201,24 @@ class Instabot:
     def unfollow_NFB(self, count):
         file = open("not_following_back.txt","r")
         not_following_back = file.read().split(',')
-        for item in range(count):
-            name = not_following_back[item]
+        i = 0
+        while i < count:
+            name = not_following_back[i]
             self.driver.get('https://instagram.com/' + name)
-            naturalSleep(10)
-            
+            naturalSleep(4)
             try:
                 self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
                 .click()
-                naturalSleep(15)
+                naturalSleep(6)
                 self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[1]').click()
                 not_following_back.remove(name)
-                print('successfully unfollowed', name)
+                i += 1
+                print(i, '/', count, 'successfully unfollowed', name)
             except Exception as e:
                 print('******failed to unfollow user', name)
                 not_following_back.remove(name)
-            naturalSleep(10)
+            naturalSleep(6)
+
         file.close()
         appendFile = open("not_following_back.txt","w")
         for item in not_following_back:
@@ -224,9 +226,10 @@ class Instabot:
         appendFile.close()
         print('successfully unfollowed', count, 'users')
       
-    def follow(self):
-        target_found = False
-        while target_found == False:
+
+    def follow(self, amount):
+        followed = 0
+        while followed < amount:
             self.driver.get('https://instagram.com')
             sleep(3)
             targets = self.driver.find_elements_by_class_name('ZIAjV')
@@ -241,7 +244,7 @@ class Instabot:
             for names in userList:
                 print('User:', names)
                 self.driver.get('https://instagram.com/' + names)
-                naturalSleep(10)
+                naturalSleep(4)
                 #follower count
                 follower = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a/span')\
                     .text
@@ -260,29 +263,53 @@ class Instabot:
                 #follower to following ratio
                 ratio = abs(int(follower) - int(following)) / int(following)
                 print('Ratio:', ratio)
-                naturalSleep(10)
+                naturalSleep(4)
 
-                #randomly like their post and follower others that liked the post
-                if ratio <= 4 and int(follower) < 6000:
-                    '''
-                    posts = self.driver.find_elements_by_tag_name('a')
-                    hrefs = [item.get_attribute('href') for item in posts
-                                 if '.com/p/' in item.get_attribute('href')]
-                    self.driver.get(hrefs[random.randrange(0,8)])
-                    '''
-                    self.driver.get('https://www.instagram.com/p/CAjx-dCnJwk/')
-                    naturalSleep(6)
-                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')\
-                            .click()
-                    naturalSleep(10)
-                    
-                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[2]/div/div[2]/button')\
-                        .click()
-                    naturalSleep(12)
-                    
-                    bot.liked_scrolling_list()
-            
-                    target_found = True
+                # randomly like their post and follower others that liked the post
+                if ratio <= 0.4 and int(follower) < 700 and int(follower) > 150:
+                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a').click()
+                    sleep(4)
+                    bot.scrolling_list(int(follower) - 5, '/html/body/div[4]/div/div/div[2]')
+                    scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[2]')
+                    followerList = scrollBox.find_elements_by_tag_name('a')
+                    followerNameList = [item.text for item in followerList]
+
+                    for item in followerNameList:
+                        if item != '' and item != 'ivrz.fpv':
+                            print(item)
+                            self.driver.get('https://instagram.com/' + item)
+                            naturalSleep(10)
+                            # currently not following private accounts
+                            already_following = self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button')
+                            if np.size(already_following) > 0 and followed < amount:
+                                self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button')\
+                                    .click()
+                                followed += 1
+                                print('follwed', followed, 'users')
+                                try:
+                                    posts = self.driver.find_elements_by_tag_name('a')
+                                    hrefs = [item.get_attribute('href') for item in posts
+                                                if '.com/p/' in item.get_attribute('href')]
+                                    if len(hrefs) < 12:
+                                        likes = len(hrefs)
+                                    else:
+                                        likes = random.randint(6, 12)
+
+                                    for i in range(likes):
+                                        self.driver.get(hrefs[i])
+                                        naturalSleep(5)
+                                        if bot.unique_post() == True:
+                                            self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')\
+                                                .click()
+                                            naturalSleep(5)
+                                    print('finished liking', likes, 'posts')
+                                except Exception as e:
+                                    print('failed to like post')
+                            else:
+                                print('already following')
+                            sleep(5)
+                    print('iteration complete')
+                    sleep(500) 
 
     def hashtag_like_and_comment(self, amount):
         file = open("hashtags.txt","r")
@@ -296,7 +323,7 @@ class Instabot:
         count = 0
         i = 0
         while count < (amount - 14):
-            print('---------------switching to next hashtag: #' + hashtag_list[i] + '---------------')
+            print('---------------SWITCHING TO NEXT HASHTAG: #' + hashtag_list[i] + '---------------')
             naturalSleep(15)
             self.driver.get('https://www.instagram.com/explore/tags/' + hashtag_list[i])
             i += 1
@@ -308,7 +335,7 @@ class Instabot:
             posts = self.driver.find_elements_by_tag_name('a')
             hrefs = [item.get_attribute('href') for item in posts
                         if '.com/p/' in item.get_attribute('href')]
-            target_posts = random.sample(hrefs, random.randint(12,16))
+            target_posts = random.sample(hrefs, random.randint(16, len(hrefs)))
             print(str(len(hrefs)) + ' posts detected')
             naturalSleep(8)
             
@@ -325,7 +352,7 @@ class Instabot:
                     naturalSleep(10)
 
                     #commenting post
-                    if random.randint(0,12) < 4:
+                    if random.randint(0,12) < 5:
                         file = open("comments.txt","r")
                         comments = file.read().split(',')
                         self.driver.find_element_by_class_name('Ypffh').click()
@@ -354,9 +381,10 @@ bot = Instabot(keys.username, keys.password)
 # bot.get_follower_list()
 # bot.get_following_list()
 # bot.not_following_back_list()
+
 # bot.unfollow_NFB(50)
-# bot.follow()
-bot.hashtag_like_and_comment(1000)
+bot.follow(50)
+# bot.hashtag_like_and_comment(1000)
 
 import actions_per_day
 print('total actions today: '+ str(actions_per_day.actions))
