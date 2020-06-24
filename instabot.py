@@ -5,7 +5,7 @@ from time import sleep
 import numpy as np
 import random, re, datetime, importlib
 # local files
-import keys, actions_per_day
+import keys, actionCounter
 
 PATH = 'C:\Program Files (x86)\chromedriver.exe'
 
@@ -15,24 +15,33 @@ def naturalSleep(value):
     newVal = random.randrange(lowerBound, upperBound)
     sleep(newVal)
 
-def oneAction():
-    importlib.reload(actions_per_day)
+def oneAction(actionType):
+    importlib.reload(actionCounter)
     now = datetime.datetime.now()
     today = now.strftime('%m.%d')
 
-    if actions_per_day.date == today:
-        actions_per_day.actions += 1
-        print('date existing, actions: '+ str(actions_per_day.actions))
-        f = open("actions_per_day.py", "w")
-        f.write("date = '"+ str(today) + "'\n")
-        f.write('actions = ' + str(actions_per_day.actions))
-        f.close()
-    else:
-        print('new date')
-        f = open("actions_per_day.py", "w")
-        f.write("date = '"+ str(today) + "'\n")
-        f.write('actions = 1')
-        f.close()
+    if actionCounter.date == today: actionCounter.daily_actions += 1
+    else: actionCounter.daily_actions = 1
+
+    if actionType == 'like': actionCounter.total_likes += 1
+    elif actionType == 'comment': actionCounter.total_comments += 1
+    elif actionType == 'follow': actionCounter.total_follows += 1
+    elif actionType == 'unfollow': actionCounter.total_unfollows += 1
+    
+    if actionCounter.date == today: 
+        print('actions: '+ str(actionCounter.daily_actions))
+        if actionCounter.daily_actions > 500: print('exceeded 500 actions today')
+    else: print('new date')
+
+    f = open("actionCounter.py", "w")
+    f.write("date = '"+ str(today) + "'\n")
+    f.write('daily_actions = ' + str(actionCounter.daily_actions) + '\n')
+    f.write('total_likes = ' + str(actionCounter.total_likes) + '\n')
+    f.write('total_comments = ' + str(actionCounter.total_comments) + '\n')
+    f.write('total_follows = ' + str(actionCounter.total_follows) + '\n')
+    f.write('total_unfollows = ' + str(actionCounter.total_unfollows) + '\n')
+    f.close()
+
 
 
 class Instabot:
@@ -69,25 +78,6 @@ class Instabot:
             print('current:', nameLinks, '/', maxNum, 'max')
             sleep(0.5)
         return scrollBox
-    
-    def liked_scrolling_list(self):
-        actions = ActionChains(self.driver)
-        scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[2]')
-        iterations = 0
-        while iterations <= 6:
-            try:
-                userToFollow = self.driver.find_elements_by_class_name('y3zKF')
-                for item in userToFollow:
-                    item.click()
-            except Exception as e:
-                sleep(0.1)
-            item.click()
-            sleep(5)
-            scrollBox.click()
-            actions.send_keys(Keys.PAGE_DOWN).perform()
-            print(iterations)
-            sleep(0.6)
-            iterations += 1
 
     def unique_post(self):
         btn = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')
@@ -114,11 +104,11 @@ class Instabot:
         #open follower tab
         self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a')\
             .click()
-        sleep(2)
-        scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div[2]')
+        sleep(3)
+        scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[2]')
 
         #scrolling
-        bot.scrolling_list(followerCount, '/html/body/div[4]/div/div[2]')
+        bot.scrolling_list(int(followerCount) - 2, '/html/body/div[4]/div/div/div[2]')
 
         #clear previous data on the following text file
         file = open("follower_list.txt","r+")
@@ -138,7 +128,7 @@ class Instabot:
             
         print('follower list generated!')
         #close followers tab
-        self.driver.find_element_by_xpath('/html/body/div[4]/div/div[1]/div/div[2]/button')\
+        self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[1]/div/div[2]/button')\
             .click()
 
 
@@ -158,10 +148,10 @@ class Instabot:
         self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a')\
             .click()
         sleep(2)
-        scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div[2]')
+        scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[2]')
 
         #scrolling
-        bot.scrolling_list(followingCount, '/html/body/div[4]/div/div[2]')
+        bot.scrolling_list(followingCount, '/html/body/div[4]/div/div/div[2]')
 
         #clear previous data on the following text file
         file = open("following_list.txt","r+")
@@ -181,7 +171,7 @@ class Instabot:
             
         print('following list generated!')
         #close following tab
-        self.driver.find_element_by_xpath('/html/body/div[4]/div/div[1]/div/div[2]/button')\
+        self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[1]/div/div[2]/button')\
             .click()
        
     def not_following_back_list(self):
@@ -211,9 +201,10 @@ class Instabot:
                 .click()
                 naturalSleep(6)
                 self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[1]').click()
+                oneAction('unfollow')
                 not_following_back.remove(name)
                 i += 1
-                print(i, '/', count, 'successfully unfollowed', name)
+                print(i, '/', count, 'successfully unfollowed:', name)
             except Exception as e:
                 print('******failed to unfollow user', name)
                 not_following_back.remove(name)
@@ -266,10 +257,10 @@ class Instabot:
                 naturalSleep(4)
 
                 # randomly like their post and follower others that liked the post
-                if ratio <= 0.4 and int(follower) < 700 and int(follower) > 150:
+                if ratio <= 0.4 and int(follower) < 600 and int(follower) > 150:
                     self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a').click()
                     sleep(4)
-                    bot.scrolling_list(int(follower) - 5, '/html/body/div[4]/div/div/div[2]')
+                    bot.scrolling_list(int(follower) - 2, '/html/body/div[4]/div/div/div[2]')
                     scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[2]')
                     followerList = scrollBox.find_elements_by_tag_name('a')
                     followerNameList = [item.text for item in followerList]
@@ -282,8 +273,10 @@ class Instabot:
                             # currently not following private accounts
                             already_following = self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button')
                             if np.size(already_following) > 0 and followed < amount:
+                                # click on follow
                                 self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button')\
                                     .click()
+                                oneAction('follow')
                                 followed += 1
                                 print('follwed', followed, 'users')
                                 try:
@@ -348,7 +341,7 @@ class Instabot:
                     self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')\
                         .click()
                     count += 1
-                    oneAction()
+                    oneAction('like')
                     naturalSleep(10)
 
                     #commenting post
@@ -360,7 +353,7 @@ class Instabot:
                         self.driver.find_element_by_class_name('Ypffh').send_keys(comments[random.randrange(0,len(comments))])
                         sleep(1)
                         self.driver.find_element_by_class_name('Ypffh').send_keys(Keys.ENTER)
-                        oneAction()
+                        oneAction('comment')
                         file.close()
                         naturalSleep(15)
                     print('count: ' + str(count))
@@ -382,9 +375,9 @@ bot = Instabot(keys.username, keys.password)
 # bot.get_following_list()
 # bot.not_following_back_list()
 
-# bot.unfollow_NFB(50)
-bot.follow(50)
-# bot.hashtag_like_and_comment(1000)
+bot.unfollow_NFB(60)
+bot.follow(40)
+# bot.hashtag_like_and_comment(400)
 
-import actions_per_day
-print('total actions today: '+ str(actions_per_day.actions))
+import actionCounter
+print('total actions today: '+ str(actionCounter.daily_actions))
