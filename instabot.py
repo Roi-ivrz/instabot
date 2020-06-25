@@ -69,15 +69,38 @@ class Instabot:
         actions = ActionChains(self.driver)
         scrollBox = self.driver.find_element_by_xpath(scrollbox_location)
         nameLinks = 1
+        repetition = 0
         while int(nameLinks) < int(maxNum):
             scrollBox.click()
+            prevCount = len(scrollBox.find_elements_by_class_name('FPmhX'))
             actions.send_keys(Keys.PAGE_DOWN).perform()
             sleep(0.5)
             nameLinks = len(scrollBox.find_elements_by_class_name('FPmhX'))
+            if prevCount == nameLinks: repetition += 1
+            if repetition == 6: return False
             actions.send_keys(Keys.PAGE_DOWN).perform()
             print('current:', nameLinks, '/', maxNum, 'max')
             sleep(0.5)
-        return scrollBox
+        if int(nameLinks) >= int(maxNum): return True
+
+
+    def scrolling(self, maxNum, scrollbox_location, xpath):
+        i = 0
+        while i < 4: 
+            if bot.scrolling_list(maxNum, scrollbox_location) == True: break
+            else: 
+                print('scrolling failed, retrying')
+                self.driver.refresh()
+                i += 1
+                print('trial:', i, '/4')
+                sleep(3)
+                self.driver.find_element_by_xpath(xpath)\
+                    .click()
+                sleep(2)
+        if i == 4: 
+            print('4 unsucessful attempt, try again later')
+            return False
+
 
     def unique_post(self):
         btn = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')
@@ -108,7 +131,7 @@ class Instabot:
         scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[2]')
 
         #scrolling
-        bot.scrolling_list(int(followerCount) - 2, '/html/body/div[4]/div/div/div[2]')
+        bot.scrolling(int(followerCount) - 2, '/html/body/div[4]/div/div/div[2]', '/html/body/div[1]/section/main/div/header/section/ul/li[2]/a')
 
         #clear previous data on the following text file
         file = open("follower_list.txt","r+")
@@ -116,14 +139,11 @@ class Instabot:
         file. close()
 
         #generating names from each element
-        print('end of scrolling, generating followers list...')   
-        followerNameList = []
+        print('end of scrolling, generating followers list...')
         followerList = scrollBox.find_elements_by_tag_name('a')
         appendFile = open('follower_list.txt', 'a')
         for item in followerList:
-            if item.text != '':
-                followerNameList.append(item.text)
-                appendFile.write(item.text + ',')
+            if item.text != '': appendFile.write(item.text + ',')
         appendFile.close()
             
         print('follower list generated!')
@@ -151,7 +171,7 @@ class Instabot:
         scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[2]')
 
         #scrolling
-        bot.scrolling_list(followingCount, '/html/body/div[4]/div/div/div[2]')
+        bot.scrolling(int(followingCount) - 2, '/html/body/div[4]/div/div/div[2]', '/html/body/div[1]/section/main/div/header/section/ul/li[3]/a')
 
         #clear previous data on the following text file
         file = open("following_list.txt","r+")
@@ -159,14 +179,11 @@ class Instabot:
         file. close()
 
         #generating names from each element
-        print('end of scrolling, generating following list...')   
-        followingNameList = []
+        print('end of scrolling, generating following list...')
         followingList = scrollBox.find_elements_by_tag_name('a')
         appendFile = open('following_list.txt', 'a')
         for item in followingList:
-            if item.text != '':
-                followingNameList.append(item.text)
-                appendFile.write(item.text + ',')
+            if item.text != '': appendFile.write(item.text + ',')
         appendFile.close()
             
         print('following list generated!')
@@ -197,6 +214,7 @@ class Instabot:
             self.driver.get('https://instagram.com/' + name)
             naturalSleep(4)
             try:
+                naturalSleep(6)
                 self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
                 .click()
                 naturalSleep(6)
@@ -205,10 +223,9 @@ class Instabot:
                 not_following_back.remove(name)
                 i += 1
                 print(i, '/', count, 'successfully unfollowed:', name)
-            except Exception as e:
+            except Exception:
                 print('******failed to unfollow user', name)
-                not_following_back.remove(name)
-            naturalSleep(6)
+                sleep(2)
 
         file.close()
         appendFile = open("not_following_back.txt","w")
@@ -258,9 +275,10 @@ class Instabot:
 
                 # randomly like their post and follower others that liked the post
                 if ratio <= 0.4 and int(follower) < 600 and int(follower) > 150:
+                    # clicking on their follower list
                     self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a').click()
                     sleep(4)
-                    bot.scrolling_list(int(follower) - 2, '/html/body/div[4]/div/div/div[2]')
+                    bot.scrolling(int(follower) - 2, '/html/body/div[4]/div/div/div[2]', '/html/body/div[1]/section/main/div/header/section/ul/li[2]/a')
                     scrollBox = self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[2]')
                     followerList = scrollBox.find_elements_by_tag_name('a')
                     followerNameList = [item.text for item in followerList]
@@ -296,7 +314,7 @@ class Instabot:
                                                 .click()
                                             naturalSleep(5)
                                     print('finished liking', likes, 'posts')
-                                except Exception as e:
+                                except Exception:
                                     print('failed to like post')
                             else:
                                 print('already following')
@@ -345,7 +363,7 @@ class Instabot:
                     naturalSleep(10)
 
                     #commenting post
-                    if random.randint(0,12) < 5:
+                    if random.randint(0,12) < 4:
                         file = open("comments.txt","r")
                         comments = file.read().split(',')
                         self.driver.find_element_by_class_name('Ypffh').click()
@@ -361,7 +379,16 @@ class Instabot:
                     print('post already interacted')
 
             
-
+    def get_NFB_list(self):
+        try:
+            bot.get_follower_list()
+            print('updated follower list')
+            bot.get_following_list()
+            print('updated following list')
+            bot.not_following_back_list()
+            print('---updated NFB list---')
+        except:
+            print('failed, try again later')
     
  
             #self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -371,13 +398,11 @@ class Instabot:
 
 
 bot = Instabot(keys.username, keys.password)
-# bot.get_follower_list()
-# bot.get_following_list()
-# bot.not_following_back_list()
+# bot.get_NFB_list()
 
-bot.unfollow_NFB(60)
-bot.follow(40)
-# bot.hashtag_like_and_comment(400)
+# bot.unfollow_NFB(60)
+# bot.follow(40)
+bot.hashtag_like_and_comment(400)
 
 import actionCounter
 print('total actions today: '+ str(actionCounter.daily_actions))
