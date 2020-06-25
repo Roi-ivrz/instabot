@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import NoSuchElementException
 from time import sleep
 import numpy as np
 import random, re, datetime, importlib
@@ -223,8 +224,12 @@ class Instabot:
                 not_following_back.remove(name)
                 i += 1
                 print(i, '/', count, 'successfully unfollowed:', name)
-            except Exception:
-                print('******failed to unfollow user', name)
+                
+            except NoSuchElementException:
+                if self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button') != []:
+                    print('already unfollowed user:', name)
+                    not_following_back.remove(name)
+                else: print('error')
                 sleep(2)
 
         file.close()
@@ -400,9 +405,9 @@ class Instabot:
 bot = Instabot(keys.username, keys.password)
 # bot.get_NFB_list()
 
-# bot.unfollow_NFB(60)
-# bot.follow(40)
-bot.hashtag_like_and_comment(400)
+bot.unfollow_NFB(40)
+bot.follow(30)
+# bot.hashtag_like_and_comment(400)
 
 import actionCounter
 print('total actions today: '+ str(actionCounter.daily_actions))
