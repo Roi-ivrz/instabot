@@ -110,7 +110,28 @@ class Instabot:
         if aria_label == 'Like':
             return True
         else:
-            return False
+            return False    
+    
+    def ratio(self):
+        #follower count
+        follower = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a/span')\
+                    .text
+        follower = ''.join(re.split(',|\.', follower))
+        #following count
+        following = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a/span')\
+            .text
+        following = ''.join(re.split(',|\.', following))
+        #in case value in thousands
+        if 'k' in follower:
+            follower = follower.replace('k', '')
+            follower = int(follower) *100
+        if 'k' in following:
+            following = following.replace('k', '')
+            following = int(following) *100
+        #follower to following ratio
+        ratio = int(follower) / int(following)
+        print('Ratio:', ratio)
+        return ratio, follower
 
 
     def get_follower_list(self):
@@ -226,7 +247,12 @@ class Instabot:
                 print(i, '/', count, 'successfully unfollowed:', name)
                 
             except NoSuchElementException:
+                # check if following option exist for public users
                 if self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button') != []:
+                    print('already unfollowed user:', name)
+                    not_following_back.remove(name)
+                # check if following option exist for private users
+                elif self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/button') != []:
                     print('already unfollowed user:', name)
                     not_following_back.remove(name)
                 else: print('error')
@@ -258,28 +284,11 @@ class Instabot:
                 print('User:', names)
                 self.driver.get('https://instagram.com/' + names)
                 naturalSleep(4)
-                #follower count
-                follower = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a/span')\
-                    .text
-                follower = ''.join(re.split(',|\.', follower))
-                #following count
-                following = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a/span')\
-                    .text
-                following = ''.join(re.split(',|\.', following))
-                #in case value in thousands
-                if 'k' in follower:
-                    follower = follower.replace('k', '')
-                    follower = int(follower) *100
-                if 'k' in following:
-                    following = following.replace('k', '')
-                    following = int(following) *100
-                #follower to following ratio
-                ratio = abs(int(follower) - int(following)) / int(following)
-                print('Ratio:', ratio)
+                ratio, follower = bot.ratio()
                 naturalSleep(4)
 
-                # randomly like their post and follower others that liked the post
-                if ratio <= 0.4 and int(follower) < 600 and int(follower) > 150:
+                # randomly like their post and follower othsers that liked the post
+                if ratio >= 0.5 and ratio < 1.1 and int(follower) > 150:
                     # clicking on their follower list
                     self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a').click()
                     sleep(4)
@@ -295,7 +304,9 @@ class Instabot:
                             naturalSleep(10)
                             # currently not following private accounts
                             already_following = self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button')
-                            if np.size(already_following) > 0 and followed < amount:
+                            # check their ratio
+                            ratio, follower = bot.ratio()
+                            if np.size(already_following) > 0 and ratio < 1.2 and followed < amount:
                                 # click on follow
                                 self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button')\
                                     .click()
@@ -317,6 +328,7 @@ class Instabot:
                                         if bot.unique_post() == True:
                                             self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')\
                                                 .click()
+                                            oneAction('like')
                                             naturalSleep(5)
                                     print('finished liking', likes, 'posts')
                                 except Exception:
@@ -405,7 +417,7 @@ class Instabot:
 bot = Instabot(keys.username, keys.password)
 # bot.get_NFB_list()
 
-bot.unfollow_NFB(40)
+# bot.unfollow_NFB(30)
 bot.follow(30)
 # bot.hashtag_like_and_comment(400)
 
