@@ -1,6 +1,6 @@
-date = '06.26'
-daily_actions = 372
-total_likes = 754
-total_comments = 87
-total_follows = 86
-total_unfollows = 202
+date = '07.01'
+daily_actions = 48
+total_likes = 1838
+total_comments = 191
+total_follows = 170
+total_unfollows = 351
