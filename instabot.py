@@ -10,12 +10,14 @@ import keys, actionCounter
 
 PATH = 'C:\Program Files (x86)\chromedriver.exe'
 
+# randomized sleep time
 def naturalSleep(value):
     deviation = 0.6
     upperBound,lowerBound = round(value + value*deviation), round(value - value*deviation)
     newVal = random.randrange(lowerBound, upperBound)
     sleep(newVal)
 
+# action counter 
 def oneAction(actionType):
     importlib.reload(actionCounter)
     now = datetime.datetime.now()
@@ -43,7 +45,9 @@ def oneAction(actionType):
     f.write('total_unfollows = ' + str(actionCounter.total_unfollows) + '\n')
     f.close()
 
-
+# read white list 
+file = open("white_list.txt","r")
+white_list = file.read().split(',')
 
 class Instabot:
     def __init__(self, username, password):
@@ -233,37 +237,39 @@ class Instabot:
         i, errorCounter = 0, 0
         while i < count:
             name = not_following_back[i]
-            self.driver.get('https://instagram.com/' + name)
-            naturalSleep(4)
-            try:
-                naturalSleep(6)
-                self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
-                .click()
-                naturalSleep(6)
-                self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[1]').click()
-                oneAction('unfollow')
-                not_following_back.remove(name)
-                i += 1
-                print(i, '/', count, 'successfully unfollowed:', name)
-                
-            except NoSuchElementException:
-                # check if following option exist for public users
-                if self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button') != []:
-                    print('already unfollowed user:', name)
+            if name not in white_list:
+                self.driver.get('https://instagram.com/' + name)
+                naturalSleep(4)
+                try:
+                    naturalSleep(6)
+                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
+                    .click()
+                    naturalSleep(6)
+                    self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[1]').click()
+                    oneAction('unfollow')
                     not_following_back.remove(name)
-                # check if following option exist for private users
-                elif self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/button') != []:
-                    print('already unfollowed user:', name)
-                    not_following_back.remove(name)
-                else: 
-                    print('error ' + str(errorCounter))
-                prevName = ''
-                if prevName == name: errorCounter += 1
-                else: errorCounter = 0
-                prevName = name
+                    i += 1
+                    print(i, '/', count, 'successfully unfollowed:', name)
+                    
+                except NoSuchElementException:
+                    # check if following option exist for public users
+                    if self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button') != []:
+                        print('already unfollowed user:', name)
+                        not_following_back.remove(name)
+                    # check if following option exist for private users
+                    elif self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/button') != []:
+                        print('already unfollowed user:', name)
+                        not_following_back.remove(name)
+                    else: 
+                        print('error ' + str(errorCounter))
+                    prevName = ''
+                    if prevName == name: errorCounter += 1
+                    else: errorCounter = 0
+                    prevName = name
 
-                if errorCounter == 4: not_following_back.remove(name)
-                sleep(2)
+                    if errorCounter == 4: not_following_back.remove(name)
+                    sleep(2)
+            else: not_following_back.remove(name)
 
         file.close()
         appendFile = open("not_following_back.txt","w")
@@ -427,6 +433,7 @@ bot = Instabot(keys.username, keys.password)
 # bot.get_NFB_list()
 
 # bot.daily(unfollow, follow, likes)
-bot.daily(40, 0, 150)
+# bot.daily(20, 0, 150)
+bot.unfollow_NFB(2)
 importlib.reload(actionCounter)
 print('total actions today: '+ str(actionCounter.daily_actions))
