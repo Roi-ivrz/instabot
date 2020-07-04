@@ -23,27 +23,26 @@ def oneAction(actionType):
     now = datetime.datetime.now()
     today = now.strftime('%m.%d')
 
-    if actionCounter.date == today: actionCounter.daily_actions += 1
-    else: actionCounter.daily_actions = 1
-
-    if actionType == 'like': actionCounter.total_likes += 1
-    elif actionType == 'comment': actionCounter.total_comments += 1
-    elif actionType == 'follow': actionCounter.total_follows += 1
-    elif actionType == 'unfollow': actionCounter.total_unfollows += 1
-    
-    if actionCounter.date == today: 
+    if actionType == 'actionCount':
         print('actions: '+ str(actionCounter.daily_actions))
         if actionCounter.daily_actions > 500: print('exceeded 500 actions today')
-    else: print('new date')
+    else:
+        if actionCounter.date == today: actionCounter.daily_actions += 1
+        else: actionCounter.daily_actions = 1
 
-    f = open("actionCounter.py", "w")
-    f.write("date = '"+ str(today) + "'\n")
-    f.write('daily_actions = ' + str(actionCounter.daily_actions) + '\n')
-    f.write('total_likes = ' + str(actionCounter.total_likes) + '\n')
-    f.write('total_comments = ' + str(actionCounter.total_comments) + '\n')
-    f.write('total_follows = ' + str(actionCounter.total_follows) + '\n')
-    f.write('total_unfollows = ' + str(actionCounter.total_unfollows) + '\n')
-    f.close()
+        if actionType == 'like': actionCounter.total_likes += 1
+        elif actionType == 'comment': actionCounter.total_comments += 1
+        elif actionType == 'follow': actionCounter.total_follows += 1
+        elif actionType == 'unfollow': actionCounter.total_unfollows += 1
+
+        f = open("actionCounter.py", "w")
+        f.write("date = '"+ str(today) + "'\n")
+        f.write('daily_actions = ' + str(actionCounter.daily_actions) + '\n')
+        f.write('total_likes = ' + str(actionCounter.total_likes) + '\n')
+        f.write('total_comments = ' + str(actionCounter.total_comments) + '\n')
+        f.write('total_follows = ' + str(actionCounter.total_follows) + '\n')
+        f.write('total_unfollows = ' + str(actionCounter.total_unfollows) + '\n')
+        f.close()
 
 # read white list 
 file = open("white_list.txt","r")
@@ -116,6 +115,7 @@ class Instabot:
         else:
             return False    
     
+
     def ratio(self):
         #follower count
         follower = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a/span')\
@@ -217,6 +217,7 @@ class Instabot:
         self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div[1]/div/div[2]/button')\
             .click()
        
+
     def not_following_back_list(self):
         #followers
         file = open("follower_list.txt","r")
@@ -231,10 +232,14 @@ class Instabot:
         appendFile.close()
         print('list of not following back users compiled:', len(not_following_back), 'total users')
 
+
     def unfollow_NFB(self, count):
         file = open("not_following_back.txt","r")
         not_following_back = file.read().split(',')
+        print(str(len(not_following_back)) + 'users not following you back')
         i, errorCounter = 0, 0
+        prevName = '' 
+
         while i < count:
             name = not_following_back[i]
             if name not in white_list:
@@ -262,7 +267,7 @@ class Instabot:
                         not_following_back.remove(name)
                     else: 
                         print('error ' + str(errorCounter))
-                    prevName = ''
+                    
                     if prevName == name: errorCounter += 1
                     else: errorCounter = 0
                     prevName = name
@@ -271,6 +276,7 @@ class Instabot:
                     sleep(2)
             else: not_following_back.remove(name)
 
+        oneAction('actionCount')
         file.close()
         appendFile = open("not_following_back.txt","w")
         for item in not_following_back:
@@ -289,7 +295,6 @@ class Instabot:
             for item in targets[:(len(targets)-1)]:
                 if item.text not in userList:
                     userList.append(item.text)
-            print(userList)
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             sleep(3)
 
@@ -311,13 +316,13 @@ class Instabot:
                     followerNameList = [item.text for item in followerList]
 
                     for item in followerNameList:
-                        if item != '' and item != 'ivrz.fpv':
+                        if item != '' and item != 'ivrz.fpv' and followed < amount:
                             print(item)
                             self.driver.get('https://instagram.com/' + item)
                             naturalSleep(10)
                             # currently not following private accounts
                             already_following = self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button')
-                            if np.size(already_following) > 0 and followed < amount:
+                            if np.size(already_following) > 0:
                                 ratio, follower = bot.ratio()
                                 if ratio < 1.2 and int(follower) > 120:
                                     # click on follow
@@ -346,9 +351,11 @@ class Instabot:
                                         print('finished liking', likes, 'posts')
                                     except Exception:
                                         print('failed to like post')
+                                    oneAction('actionCount')
                             sleep(5)
                     print('iteration complete')
                     sleep(120) 
+
 
     def hashtag_like_and_comment(self, amount):
         file = open("hashtags.txt","r")
@@ -361,7 +368,7 @@ class Instabot:
         file.close()
         count = 0
         i = 0
-        while count < (amount - 14):
+        while count < (amount - 15):
             print('---------------SWITCHING TO NEXT HASHTAG: #' + hashtag_list[i] + '---------------')
             naturalSleep(15)
             self.driver.get('https://www.instagram.com/explore/tags/' + hashtag_list[i])
@@ -378,6 +385,7 @@ class Instabot:
             print(str(len(hrefs)) + ' posts detected')
             naturalSleep(8)
             
+            # liking random amount of post in that hashtag
             for item in target_posts:
                 self.driver.get(item)
                 naturalSleep(25)
@@ -405,8 +413,9 @@ class Instabot:
                     print('count: ' + str(count))
                 else:
                     print('post already interacted')
-
+            oneAction('actionCount')
             
+
     def get_NFB_list(self):
         try:
             bot.get_follower_list()
@@ -418,6 +427,7 @@ class Instabot:
         except:
             print('failed, try again later')
     
+
     def daily(self, unfollow, follow, like):
         bot.unfollow_NFB(unfollow)
         bot.follow(follow)
@@ -433,7 +443,6 @@ bot = Instabot(keys.username, keys.password)
 # bot.get_NFB_list()
 
 # bot.daily(unfollow, follow, likes)
-# bot.daily(20, 0, 150)
-bot.unfollow_NFB(2)
+bot.daily(10, 10, 0)
 importlib.reload(actionCounter)
 print('total actions today: '+ str(actionCounter.daily_actions))
