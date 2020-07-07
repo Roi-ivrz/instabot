@@ -8,7 +8,7 @@ import random, re, datetime, importlib
 # local files
 import keys, actionCounter
 
-PATH = 'C:\Program Files (x86)\chromedriver.exe'
+PATH = 'C:\Program Files (x86)\msedgedriver.exe'
 
 # randomized sleep time
 def naturalSleep(value):
@@ -50,7 +50,7 @@ white_list = file.read().split(',')
 
 class Instabot:
     def __init__(self, username, password):
-        self.driver = webdriver.Chrome(PATH)
+        self.driver = webdriver.Edge(PATH)
         self.driver.get('https://instagram.com')
         sleep(3)
         #initial login info
@@ -134,7 +134,7 @@ class Instabot:
             following = int(following) *100
         #follower to following ratio
         ratio = int(follower) / int(following)
-        print('Ratio:', ratio)
+        # print('Ratio:', ratio)
         return ratio, follower
 
 
@@ -160,17 +160,14 @@ class Instabot:
         bot.scrolling(int(followerCount) - 2, '/html/body/div[4]/div/div/div[2]', '/html/body/div[1]/section/main/div/header/section/ul/li[2]/a')
 
         #clear previous data on the following text file
-        file = open("follower_list.txt","r+")
-        file. truncate(0)
-        file. close()
+        with open("follower_list.txt","r+") as file: file.truncate(0)
 
         #generating names from each element
         print('end of scrolling, generating followers list...')
         followerList = scrollBox.find_elements_by_tag_name('a')
-        appendFile = open('follower_list.txt', 'a')
-        for item in followerList:
-            if item.text != '': appendFile.write(item.text + ',')
-        appendFile.close()
+        with open('follower_list.txt', 'a') as appendFile:
+            for item in followerList:
+                if item.text != '': appendFile.write(item.text + ',')
             
         print('follower list generated!')
         #close followers tab
@@ -200,17 +197,14 @@ class Instabot:
         bot.scrolling(int(followingCount) - 2, '/html/body/div[4]/div/div/div[2]', '/html/body/div[1]/section/main/div/header/section/ul/li[3]/a')
 
         #clear previous data on the following text file
-        file = open("following_list.txt","r+")
-        file. truncate(0)
-        file. close()
+        with open("following_list.txt","r+") as file: file.truncate(0)
 
         #generating names from each element
         print('end of scrolling, generating following list...')
         followingList = scrollBox.find_elements_by_tag_name('a')
-        appendFile = open('following_list.txt', 'a')
-        for item in followingList:
-            if item.text != '': appendFile.write(item.text + ',')
-        appendFile.close()
+        with open('following_list.txt', 'a') as appendFile:
+            for item in followingList:
+                if item.text != '': appendFile.write(item.text + ',')
             
         print('following list generated!')
         #close following tab
@@ -219,69 +213,66 @@ class Instabot:
        
 
     def not_following_back_list(self):
-        #followers
-        file = open("follower_list.txt","r")
-        followerNames = file.read().split(',')
+        #followers 
+        with open("follower_list.txt","r") as file:
+            followerNames = file.read().split(',')
         #following
-        file = open("following_list.txt","r")
-        followingNames = file.read().split(',')
+        with open("following_list.txt","r") as file:
+            followingNames = file.read().split(',')
         not_following_back = np.setdiff1d(followingNames, followerNames)
-        appendFile = open('not_following_back.txt', 'w')
-        for item in not_following_back:
-            appendFile.write(item + ',')
-        appendFile.close()
+        with open('not_following_back.txt', 'w') as appendFile:
+            for item in not_following_back:
+                appendFile.write(item + ',')
         print('list of not following back users compiled:', len(not_following_back), 'total users')
 
 
     def unfollow_NFB(self, count):
-        file = open("not_following_back.txt","r")
-        not_following_back = file.read().split(',')
-        print(str(len(not_following_back)) + 'users not following you back')
-        i, errorCounter = 0, 0
-        prevName = '' 
+        with open("not_following_back.txt","r") as file:
+            not_following_back = file.read().split(',')
+            print(str(len(not_following_back)) + ' users not following you back')
+            i, errorCounter = 0, 0
+            prevName = '' 
 
-        while i < count:
-            name = not_following_back[i]
-            if name not in white_list:
-                self.driver.get('https://instagram.com/' + name)
-                naturalSleep(4)
-                try:
-                    naturalSleep(6)
-                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
-                    .click()
-                    naturalSleep(6)
-                    self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[1]').click()
-                    oneAction('unfollow')
-                    not_following_back.remove(name)
-                    i += 1
-                    print(i, '/', count, 'successfully unfollowed:', name)
-                    
-                except NoSuchElementException:
-                    # check if following option exist for public users
-                    if self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button') != []:
-                        print('already unfollowed user:', name)
+            while i < count:
+                name = not_following_back[i]
+                if name not in white_list:
+                    self.driver.get('https://instagram.com/' + name)
+                    naturalSleep(4)
+                    try:
+                        naturalSleep(6)
+                        self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[2]/span/span[1]/button/div/span')\
+                        .click()
+                        naturalSleep(6)
+                        self.driver.find_element_by_xpath('/html/body/div[4]/div/div/div/div[3]/button[1]').click()
+                        oneAction('unfollow')
                         not_following_back.remove(name)
-                    # check if following option exist for private users
-                    elif self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/button') != []:
-                        print('already unfollowed user:', name)
-                        not_following_back.remove(name)
-                    else: 
-                        print('error ' + str(errorCounter))
-                    
-                    if prevName == name: errorCounter += 1
-                    else: errorCounter = 0
-                    prevName = name
+                        i += 1
+                        print(i, '/', count, 'successfully unfollowed:', name)
+                        
+                    except NoSuchElementException:
+                        # check if following option exist for public users
+                        if self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/div[1]/span/span[1]/button') != []:
+                            print('already unfollowed user:', name)
+                            not_following_back.remove(name)
+                        # check if following option exist for private users
+                        elif self.driver.find_elements_by_xpath('/html/body/div[1]/section/main/div/header/section/div[1]/button') != []:
+                            print('already unfollowed user:', name)
+                            not_following_back.remove(name)
+                        else: 
+                            print('error ' + str(errorCounter))
+                        prevName = name
+                        if prevName == name: errorCounter += 1
+                        else: errorCounter = 0
+                        
 
-                    if errorCounter == 4: not_following_back.remove(name)
-                    sleep(2)
-            else: not_following_back.remove(name)
+                        if errorCounter == 4: not_following_back.remove(name)
+                        sleep(2)
+                else: not_following_back.remove(name)
 
-        oneAction('actionCount')
-        file.close()
-        appendFile = open("not_following_back.txt","w")
-        for item in not_following_back:
-            appendFile.write(item + ',')
-        appendFile.close()
+            oneAction('actionCount')
+        with open("not_following_back.txt","w") as appendFile:
+            for item in not_following_back:
+                appendFile.write(item + ',')
         print('successfully unfollowed', count, 'users')
       
 
@@ -358,14 +349,12 @@ class Instabot:
 
 
     def hashtag_like_and_comment(self, amount):
-        file = open("hashtags.txt","r")
-        hashtags = file.read().split(',')
-        List = []
-        for item in hashtags:
-            List.append(item)
-        hashtag_list = random.sample(List, len(List))
-        print(hashtag_list)
-        file.close()
+        with open("hashtags.txt","r") as file:
+            hashtags = file.read().split(',')
+            List = []
+            for item in hashtags:
+                List.append(item)
+            hashtag_list = random.sample(List, len(List))
         count = 0
         i = 0
         while count < (amount - 15):
@@ -400,15 +389,14 @@ class Instabot:
 
                     #commenting post
                     if random.randint(0,12) < 4:
-                        file = open("comments.txt","r")
-                        comments = file.read().split(',')
-                        self.driver.find_element_by_class_name('Ypffh').click()
-                        sleep(1)
-                        self.driver.find_element_by_class_name('Ypffh').send_keys(comments[random.randrange(0,len(comments))])
-                        sleep(1)
-                        self.driver.find_element_by_class_name('Ypffh').send_keys(Keys.ENTER)
-                        oneAction('comment')
-                        file.close()
+                        with open("comments.txt","r") as file:
+                            comments = file.read().split(',')
+                            self.driver.find_element_by_class_name('Ypffh').click()
+                            sleep(1)
+                            self.driver.find_element_by_class_name('Ypffh').send_keys(comments[random.randrange(0,len(comments))])
+                            sleep(1)
+                            self.driver.find_element_by_class_name('Ypffh').send_keys(Keys.ENTER)
+                            oneAction('comment')
                         naturalSleep(15)
                     print('count: ' + str(count))
                 else:
@@ -443,6 +431,6 @@ bot = Instabot(keys.username, keys.password)
 # bot.get_NFB_list()
 
 # bot.daily(unfollow, follow, likes)
-bot.daily(10, 10, 0)
+bot.daily(2, 0, 0)
 importlib.reload(actionCounter)
-print('total actions today: '+ str(actionCounter.daily_actions))
+print('$$$total actions today: '+ str(actionCounter.daily_actions) + '$$$')
