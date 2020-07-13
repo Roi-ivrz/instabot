@@ -13,8 +13,8 @@ PATH = 'C:\Program Files (x86)\msedgedriver.exe'
 # randomized sleep time
 def naturalSleep(value):
     deviation = 0.6
-    upperBound,lowerBound = round(value + value*deviation), round(value - value*deviation)
-    newVal = random.randrange(lowerBound, upperBound)
+    upperBound,lowerBound = round(value + value*deviation)*100, round(value - value*deviation)* 100
+    newVal = float(random.randrange(lowerBound, upperBound))/100
     sleep(newVal)
 
 # action counter 
@@ -107,7 +107,7 @@ class Instabot:
 
 
     def unique_post(self):
-        btn = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')
+        btn = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[3]/section[1]/span[1]/button')
         aria_label = btn.find_element_by_css_selector('svg').get_attribute("aria-label")
         sleep(2)
         if aria_label == 'Like':
@@ -175,7 +175,7 @@ class Instabot:
             .click()
 
 
-    def get_following_list(self):
+    def get_following_list(self, amount):
         #click on instagram icon to return home
         self.driver.find_element_by_xpath('/html/body/div[1]/section/nav/div[2]/div/div/div[1]/a/div/div/img')\
             .click()
@@ -184,9 +184,12 @@ class Instabot:
             .click()
         sleep(4)
         #obtain follower count
-        followingCount = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a').text.split(' ')[0]
-        followingCount = ''.join(followingCount.split(','))
-        print(self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a').text)
+        if amount == 'ALL':
+            followingCount = self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a').text.split(' ')[0]
+            followingCount = ''.join(followingCount.split(','))
+            print(self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a').text)
+        else:
+            followingCount = int(amount)
         #click on following list
         self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[3]/a')\
             .click()
@@ -297,7 +300,7 @@ class Instabot:
                 naturalSleep(4)
 
                 # randomly like their post and follower othsers that liked the post
-                if ratio >= 0.5 and ratio < 1.1 and int(follower) > 150:
+                if followed < amount and ratio >= 0.5 and ratio < 1.1 and int(follower) > 150:
                     # clicking on their follower list
                     self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/header/section/ul/li[2]/a').click()
                     sleep(4)
@@ -381,14 +384,14 @@ class Instabot:
 
                 if bot.unique_post() == True:
                     #liking post
-                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[2]/section[1]/span[1]/button')\
+                    self.driver.find_element_by_xpath('/html/body/div[1]/section/main/div/div[1]/article/div[3]/section[1]/span[1]/button')\
                         .click()
                     count += 1
                     oneAction('like')
                     naturalSleep(10)
 
                     #commenting post
-                    if random.randint(0,12) < 4:
+                    if random.randint(0,13) < 4:
                         with open("comments.txt","r") as file:
                             comments = file.read().split(',')
                             self.driver.find_element_by_class_name('Ypffh').click()
@@ -398,7 +401,9 @@ class Instabot:
                             self.driver.find_element_by_class_name('Ypffh').send_keys(Keys.ENTER)
                             oneAction('comment')
                         naturalSleep(15)
-                    print('count: ' + str(count))
+                        
+                    if count % 10 == 0: 
+                        print('count: ' + str(count))
                 else:
                     print('post already interacted')
             oneAction('actionCount')
@@ -408,13 +413,39 @@ class Instabot:
         try:
             bot.get_follower_list()
             print('updated follower list')
-            bot.get_following_list()
+            bot.get_following_list('ALL')
             print('updated following list')
             bot.not_following_back_list()
             print('---updated NFB list---')
         except:
             print('failed, try again later')
     
+
+    def DM_youtube(self, amount, link):
+        bot.get_following_list(amount)
+        with open("following_list.txt","r") as file:
+            followingNames = file.read().split(',')
+
+        for name in followingNames:
+            self.driver.get('https://instagram.com/' + name)
+            buttons = self.driver.find_elements_by_tag_name('button')
+            for item in buttons:
+                if item.text == 'Message':
+                    item.click()
+                    break
+        
+            sleep(3)
+            already_DM = self.driver.find_elements_by_xpath("//*[contains(text(), 'hey man check out my new edit!')]")
+            if len(already_DM) == 0:
+                self.driver.find_element_by_tag_name('textarea').send_keys("hey man check out my new edit! and if you like my videos please consider subscribing to my new growing channel!     " + link)
+                actions = ActionChains(self.driver)
+                actions.send_keys(Keys.ENTER).perform()
+                naturalSleep(40)
+            else:
+                print('already messaged')
+                naturalSleep(6)
+            
+
 
     def daily(self, unfollow, follow, like):
         bot.unfollow_NFB(unfollow)
@@ -431,6 +462,8 @@ bot = Instabot(keys.username, keys.password)
 # bot.get_NFB_list()
 
 # bot.daily(unfollow, follow, likes)
-bot.daily(2, 0, 0)
+# bot.daily(0, 0, 200)
+bot.DM_youtube(150, 'https://www.youtube.com/watch?v=bUA0fPF7gqE')
+
 importlib.reload(actionCounter)
-print('$$$total actions today: '+ str(actionCounter.daily_actions) + '$$$')
+print('$$$ total actions today: '+ str(actionCounter.daily_actions) + ' $$$')

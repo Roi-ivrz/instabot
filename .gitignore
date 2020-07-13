@@ -8,3 +8,4 @@ keys.py
 __pycache__
 hashtags.txt
 comments.txt
+white_list.txt
