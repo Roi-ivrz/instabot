@@ -1,0 +1,54 @@
+290 users not following you back
+actions: 74
+current: 24 / 150 max
+current: 36 / 150 max
+failed to finish follow cycle with racerflight
+current: 24 / 150 max
+current: 36 / 150 max
+current: 59 / 150 max
+current: 84 / 150 max
+current: 108 / 150 max
+current: 132 / 150 max
+current: 156 / 150 max
+failed to finish follow cycle with m3talrocksfpv
+current: 24 / 150 max
+current: 36 / 150 max
+current: 60 / 150 max
+current: 84 / 150 max
+current: 108 / 150 max
+current: 132 / 150 max
+current: 156 / 150 max
+skipping user, ratio does not qualify
+follwed 1 users
+finished liking 4 posts
+actions: 5
+follwed 2 users
+finished liking 7 posts
+actions: 13
+follwed 3 users
+finished liking 7 posts
+actions: 21
+failed to finish follow cycle with baldman_fpv
+current: 12 / 150 max
+current: 36 / 150 max
+failed to finish follow cycle with racerflight
+current: 20 / 150 max
+current: 20 / 150 max
+current: 20 / 150 max
+current: 34 / 150 max
+current: 43 / 150 max
+current: 43 / 150 max
+current: 59 / 150 max
+current: 82 / 150 max
+current: 108 / 150 max
+current: 131 / 150 max
+current: 156 / 150 max
+skipping user, ratio does not qualify
+skipping user, ratio does not qualify
+follwed 4 users
+finished liking 4 posts
+actions: 26
+follwed 5 users
+finished liking 6 posts
+actions: 33
+iteration complete

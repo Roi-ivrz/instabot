@@ -1,4 +1,4 @@
-append_test.py
+test.py
 debug.log
 follower_list.txt
 following_list.txt
@@ -9,3 +9,5 @@ __pycache__
 hashtags.txt
 comments.txt
 white_list.txt
+.vscode/
+already_dm.txt
