@@ -1,16 +1,16 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from time import sleep
 import numpy as np
-import random, re, datetime, importlib, time, math, sys, io
+import random, re, datetime, importlib, time, math, sys, io, os
 # local files
 import keys, actionCounter
 
-PATH = 'C:\Program Files (x86)\chromedriver.exe'
-chrome_options = Options()
+PATH = 'C:\Program Files (x86)\geckodriver.exe'
+
 # chrome_options.add_argument("--disable-extensions")
 # chrome_options.add_argument("--disable-gpu")
 # chrome_options.add_argument("--headless")
@@ -24,8 +24,8 @@ max_unfollowing_per_hour = 150
 like_xpath = '/html/body/div[1]/section/main/div/div[1]/article/div[3]/section[1]/span[1]/button/div/span'
 
 # read white list 
-file = open("white_list.txt","r")
-white_list = file.read().split(',')
+with open("white_list.txt","r") as file:
+    white_list = file.read().split(',')
 
 # randomized sleep time
 def naturalSleep(value):
@@ -87,8 +87,15 @@ def oneAction(actionType):
             f.write('total_DMs = ' + str(actionCounter.total_DMs) + '\n')
 
 class Instabot:
-    def __init__(self, username, password):
-        self.driver = webdriver.Chrome(executable_path=PATH, options=chrome_options)
+    def __init__(self, username, password, headless = True):
+        if headless:
+            # Set the MOZ_HEADLESS environment variable which casues Firefox to start in headless mode.
+            os.environ['MOZ_HEADLESS'] = '1'
+            # Select your Firefox binary.
+            binary = FirefoxBinary('C:\\Program Files\\Mozilla Firefox\\firefox.exe', log_file=sys.stdout)
+            self.driver = webdriver.Firefox(executable_path=PATH, firefox_binary=binary)
+        else:
+            self.driver = webdriver.Firefox(executable_path=PATH)
         self.driver.get('https://instagram.com')
         sleep(5)
         #initial login info
@@ -401,7 +408,7 @@ class Instabot:
             sleep(1)
             chance = random.randint(0,10)
             num = random.randint(0,12)
-            if chance < 3:
+            if chance < 4:
                 self.driver.find_element_by_class_name('Ypffh').send_keys(comments[random.randrange(0,len(comments))])
             elif num < 2: # scissor hand
                 self.driver.find_element_by_class_name('Ypffh').send_keys('\u270C\u270C\u270C')
@@ -456,14 +463,13 @@ class Instabot:
                     naturalSleep(10)
 
                     #commenting post
-                    if random.randint(0,11) < 8: bot.comment()
+                    if random.randint(0,11) < 5: bot.comment()
                         
                     if count % 10 == 0: 
                         print('count: ' + str(count))
                 else:
                     print('post already interacted')
             
-
     def get_NFB_list(self):
         try:
             bot.get_follower_list()
@@ -496,26 +502,25 @@ class Instabot:
                     item.click()
                     break
             sleep(10)
-            already_DM = self.driver.find_elements_by_xpath("//*[contains(text(), 'hey man hows it going')]")
-            if user not in alreadyDMList and following:
+            already_DM = self.driver.find_elements_by_xpath("//*[contains(text(), 'Check out this new video that I just made!')]")
+            if user not in alreadyDMList and following and white_list:
                 if len(already_DM) == 0:
-                    print('new account')
-                    sleep(10)
-                    actions = ActionChains(self.driver)
-                    '''
-                    self.driver.find_element_by_tag_name('textarea').send_keys("hey hows it going")
-                    actions.send_keys(Keys.ENTER).perform()
-                    naturalSleep(5)
-                    '''
-                    self.driver.find_element_by_tag_name('textarea').send_keys("Check out this new video that I just made!")
-                    actions.send_keys(Keys.ENTER).perform()
-                    naturalSleep(4)
-                    self.driver.find_element_by_tag_name('textarea').send_keys(link)
-                    actions.send_keys(Keys.ENTER).perform()
-                    oneAction('DM')
-                    count += 1
-                    if count % 5 == 0: print('count: ' + str(count))
-                    naturalSleep(40)
+                    try:
+                        print('new account')
+                        sleep(10)
+                        actions = ActionChains(self.driver)
+                        self.driver.find_element_by_tag_name('textarea').send_keys("Check out this new video that I just made!")
+                        actions.send_keys(Keys.ENTER).perform()
+                        naturalSleep(4)
+                        self.driver.find_element_by_tag_name('textarea').send_keys(link)
+                        actions.send_keys(Keys.ENTER).perform()
+                        oneAction('DM')
+                        count += 1
+                        if count % 5 == 0: print('count: ' + str(count))
+                        naturalSleep(40)
+                    except Exception as e:
+                        print('User: ', user)
+                        print(e)
                 
                 else:
                     print('already messaged')
@@ -581,7 +586,7 @@ class Instabot:
                 
 
 
-bot = Instabot(keys.username, keys.password)
+bot = Instabot(keys.username, keys.password, headless = True)
 # bot.get_NFB_list()
 
 
@@ -589,7 +594,7 @@ bot = Instabot(keys.username, keys.password)
 # bot.cycle(unfollow, follow, likes, DM)
 LongCycle = False
 # bot.cycle(0, 0, 0, 10, True)
-bot.cycle(0, 0, 30, 7, continuous = True, printLog = True)
+bot.cycle(4, 4, 30, 5, continuous = True, printLog = True)
 
 
 importlib.reload(actionCounter)
