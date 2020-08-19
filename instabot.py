@@ -10,16 +10,12 @@ import random, re, datetime, importlib, time, math, sys, io, os
 import keys, actionCounter
 
 PATH = 'C:\Program Files (x86)\geckodriver.exe'
-
-# chrome_options.add_argument("--disable-extensions")
-# chrome_options.add_argument("--disable-gpu")
-# chrome_options.add_argument("--headless")
-
+cycle_errors = 0
+global_errors = 0
 LongCycle = False
 max_likes_per_hour = 250
 max_following_per_hour = 150
 max_unfollowing_per_hour = 150
-
 
 like_xpath = '/html/body/div[1]/section/main/div/div[1]/article/div[3]/section[1]/span[1]/button/div/span'
 
@@ -33,7 +29,7 @@ def naturalSleep(value):
     deviation = 0.3
     if LongCycle:
         # print('long cycle')
-        value = value * 1.7
+        value = value * 2
     upperBound,lowerBound = round(value + value*deviation)*100, round(value - value*deviation)* 100
     newVal = float(random.randrange(lowerBound, upperBound))/100
     sleep(newVal)
@@ -179,6 +175,24 @@ class Instabot:
         # print('Ratio:', ratio)
         return ratio, follower
 
+    def errorManager(self, errorType):
+        global cycle_errors, global_errors
+        if errorType == 'cycle':
+            cycle_errors += 1
+            print('cycle errors {}'.format(cycle_errors))
+        elif errorType == 'global':
+            global_errors += 1
+            print('global errors {}'.format(global_errors))
+        elif errorType == 'clear':
+            cycle_errors, global_errors = 0, 0
+
+        if cycle_errors >= 5:
+            return 1
+        elif global_errors >= 4:
+            return 2
+        else:
+            return 0
+
     def get_follower_list(self):
         #click on instagram icon to return home
         self.driver.find_element_by_xpath('/html/body/div[1]/section/nav/div[2]/div/div/div[1]/a/div/div/img')\
@@ -270,8 +284,7 @@ class Instabot:
         with open("not_following_back.txt","r") as file:
             not_following_back = file.read().split(',')
             print(str(len(not_following_back)) + ' users not following you back')
-            i, errorCounter, global_error = 0, 1, 0
-            prevName = '' 
+            i, error, global_errors = 0, 0, 0
 
             while i < count:
                 name = not_following_back[i]
@@ -288,6 +301,7 @@ class Instabot:
                         not_following_back.remove(name)
                         i += 1
                         print(i, '/', count, 'successfully unfollowed:', name)
+                        self.errorManager('clear')
                         
                     except NoSuchElementException:
                         # check if following option exist for public users
@@ -302,17 +316,12 @@ class Instabot:
                             print('already unfollowed user:', name)
                             not_following_back.remove(name)
                         else: 
-                            print('error ' + str(errorCounter))
-                            prevName = name
+                            error = self.errorManager('local')
 
-                        if prevName == name: errorCounter += 1
-                        else: errorCounter = 1
-
-                        if errorCounter == 4:
-                            global_error += 1
+                        if error == 4:
+                            global_errors = self.errorManager('global')
                             not_following_back.remove(name)
-                        if global_error == 4:
-                            break
+                        if global_errors >= 4: break
                         sleep(2)
                 else: not_following_back.remove(name)
 
@@ -404,6 +413,7 @@ class Instabot:
     def comment(self):
         with open("comments.txt","r") as file:
             comments = file.read().split(',')
+        try:
             self.driver.find_element_by_class_name('Ypffh').click()
             sleep(1)
             chance = random.randint(0,10)
@@ -423,6 +433,8 @@ class Instabot:
             sleep(1)
             self.driver.find_element_by_class_name('Ypffh').send_keys(Keys.ENTER)
             oneAction('comment')
+        except Exception as e:
+            print('COMMENT ERROR:  ', e)
         naturalSleep(15)
 
     def hashtag_like_and_comment(self, amount):
@@ -463,7 +475,7 @@ class Instabot:
                     naturalSleep(10)
 
                     #commenting post
-                    if random.randint(0,11) < 5: bot.comment()
+                    if random.randint(0,1) < 5: bot.comment()
                         
                     if count % 10 == 0: 
                         print('count: ' + str(count))
@@ -536,15 +548,15 @@ class Instabot:
         if continuous:
             cycles = 10**20
             global max_following_per_hour, max_likes_per_hour, max_unfollowing_per_hour
-            if not printLog:
-                text_trap = io.StringIO()
-                sys.stdout = text_trap
         else:
             cycles = 1
 
         try:
             for _ in range(cycles):
                 start_timer = time.perf_counter()
+                if not printLog:
+                    text_trap = io.StringIO()
+                    sys.stdout = text_trap
                 # unfollow
                 if actionCounter.hour_unfollows < max_unfollowing_per_hour:
                     if actionCounter.hour_unfollows + unfollow < max_unfollowing_per_hour:
@@ -592,9 +604,9 @@ bot = Instabot(keys.username, keys.password, headless = True)
 
 # bot.get_following_list(1000)
 # bot.cycle(unfollow, follow, likes, DM)
-LongCycle = False
+LongCycle = True
 # bot.cycle(0, 0, 0, 10, True)
-bot.cycle(4, 4, 30, 5, continuous = True, printLog = True)
+bot.cycle(5, 5, 30, 5, continuous = True, printLog = False)
 
 
 importlib.reload(actionCounter)
